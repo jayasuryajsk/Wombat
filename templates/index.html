@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Interface</title>
+    <script src="https://unpkg.com/react/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div id="app"></div>
+    <script src="{{ url_for('static', filename='js/SettingsPopup.js') }}" type="text/babel"></script>
+    <script src="{{ url_for('static', filename='js/ChatHistory.js') }}" type="text/babel"></script>
+    <script src="{{ url_for('static', filename='js/ChatInput.js') }}" type="text/babel"></script>
+    <script src="{{ url_for('static', filename='js/ModelSelector.js') }}" type="text/babel"></script>
+    <script src="{{ url_for('static', filename='js/App.js') }}" type="text/babel"></script>
+</body>
+</html>
