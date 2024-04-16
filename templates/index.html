@@ -280,6 +280,7 @@
 
 
         // Function to render chat messages
+        // Function to render chat messages
         function renderChatMessages() {
             chatMessagesContainer.innerHTML = '';
 
@@ -299,11 +300,14 @@
                         messageElement.classList.add('text-left');
                         
                         // Detect code blocks in the assistant's message
-                        const codeBlockRegex = /```([\w\s]+)?\n([\s\S]*?)\n```/g;
-                        const messageContent = message.content.replace(codeBlockRegex, (match, language, code) => {
-                            // Determine the language class for syntax highlighting
-                            const languageClass = language ? `language-${language.trim()}` : '';
-                            return `<pre><code class="${languageClass}">${code}</code></pre>`;
+                        const codeBlockRegex = /```([\w\s]+)?\n([\s\S]*?)\n```|`(.*?)`/g;
+                        const messageContent = message.content.replace(codeBlockRegex, (match, language, code, inlineCode) => {
+                            if (inlineCode) {
+                                return `<code>${inlineCode}</code>`;
+                            } else {
+                                const languageClass = language ? `language-${language.trim()}` : '';
+                                return `<pre><code class="${languageClass}">${code}</code></pre>`;
+                            }
                         });
 
                         messageElement.innerHTML = `
@@ -311,7 +315,7 @@
                         `;
 
                         // Apply syntax highlighting to code blocks
-                        messageElement.querySelectorAll('pre code').forEach((block) => {
+                        messageElement.querySelectorAll('pre code, code').forEach((block) => {
                             Prism.highlightElement(block);
                         });
                     }
@@ -383,17 +387,21 @@
                             const assistantMessage = data.message;
 
                             // Detect code blocks in the assistant's message
-                            const codeBlockRegex = /```([\w\s]+)?\n([\s\S]*?)\n```/g;
-                            const messageContent = assistantMessage.replace(codeBlockRegex, (match, language, code) => {
-                                const languageClass = language ? `language-${language.trim()}` : '';
-                                return `<pre><code class="${languageClass}">${code}</code></pre>`;
+                            const codeBlockRegex = /```([\w\s]+)?\n([\s\S]*?)\n```|`(.*?)`/g;
+                            const messageContent = assistantMessage.replace(codeBlockRegex, (match, language, code, inlineCode) => {
+                                if (inlineCode) {
+                                    return `<code>${inlineCode}</code>`;
+                                } else {
+                                    const languageClass = language ? `language-${language.trim()}` : '';
+                                    return `<pre><code class="${languageClass}">${code}</code></pre>`;
+                                }
                             });
 
                             // Update the dialogue box with the received message
                             assistantMessageBox.innerHTML = `<span class="inline-block bg-gray-800 rounded-full py-2 px-4 text-white">${messageContent}</span>`;
 
                             // Apply syntax highlighting to code blocks
-                            assistantMessageBox.querySelectorAll('pre code').forEach((block) => {
+                            assistantMessageBox.querySelectorAll('pre code, code').forEach((block) => {
                                 Prism.highlightElement(block);
                             });
                         }
@@ -493,6 +501,66 @@
         background-color: #f0f0f0; /* Light grey background on focus for better visibility */
         border-color: blue; /* Optional: Highlights the border when focused */
     }
+
+
+    body {
+    background-color: #343541;
+    }
+
+    #chat-messages {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .self-end {
+        align-self: flex-end;
+    }
+
+    .self-start {
+        align-self: flex-start;
+    }
+    /* General Styles */
+    body {
+    background-color: #343541;
+    font-family: 'Inter', sans-serif;
+    color: #ffffff;
+    }
+
+    /* Chat Messages */
+    #chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    }
+
+    .self-end {
+    align-self: flex-end;
+    }
+
+    .self-start {
+    align-self: flex-start;
+    }
+
+    /* Message Bubbles */
+    .message-bubble {
+    padding: 0.5rem 1rem;
+    border-radius: 1.5rem;
+    max-width: 75%;
+    }
+
+    .user-message {
+    background-color: #3B82F6;
+    margin-right: 1rem;
+    }
+
+    .assistant-message {
+    background-color: #374151;
+    margin-left: 1rem;
+    }
+
+    /* Other Styles */
+    /* ... */
 
 </style>
 </html>
