@@ -64,7 +64,6 @@ def chat():
         def generate():
             assistant_message = ''
             for chunk in response:
-                print("Received chunk:", chunk)  # Debug print
                 assistant_message += chunk['message']['content']
                 yield f"data: {json.dumps({'message': assistant_message})}\n\n"
             chat_threads[thread_index]['messages'].append({'role': 'assistant', 'content': assistant_message})
