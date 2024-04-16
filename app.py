@@ -1,56 +1,77 @@
 from flask import Flask, request, jsonify, render_template
-import requests
+from ollama import Client
+from flask import json
+import ollama
 
 app = Flask(__name__)
+OLLAMA_API_URL = 'http://localhost:11434'  # Replace with your actual Ollama API URL
+client = Client(host=OLLAMA_API_URL)
 
-# Configuration
-OLLAMA_API_URL = "http://localhost:11434"  # Update with your Ollama API URL
+chat_threads = []
 
-@app.route("/")
+
+
+# Default system prompt
+DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant."
+
+@app.route('/')
 def index():
-    return render_template("index.html")
+    return render_template('index.html')
 
-@app.route("/api/models")
+@app.route('/api/chat-threads', methods=['GET'])
+def get_chat_threads():
+    return jsonify(chat_threads)
+
+@app.route('/api/models', methods=['GET'])
 def get_models():
-    response = requests.get(f"{OLLAMA_API_URL}/api/tags")
-    models = response.json()["models"]
-    return jsonify({"models": models})
+    try:
+        models = ollama.list()
+        model_names = [model['name'] for model in models['models']]
+        return jsonify({'models': [{'name': name} for name in model_names]})
+    except Exception as e:
+        print("Error fetching models:", e)
+        return jsonify({'error': str(e)}), 500
 
-@app.route("/api/generate", methods=["POST"])
-def generate():
-    data = request.get_json()
-    model = data.get("model")
-    prompt = data.get("prompt")
-
-    response = requests.post(
-        f"{OLLAMA_API_URL}/api/generate",
-        json={"model": model, "prompt": prompt},
-        stream=True,
-    )
-
-    def generate_response():
-        for chunk in response.iter_content(chunk_size=None):
-            yield chunk
-
-    return app.response_class(generate_response(), mimetype="application/json")
-
-@app.route("/api/chat", methods=["POST"])
+@app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.get_json()
-    model = data.get("model")
-    messages = data.get("messages")
+    thread_index = data.get('threadIndex', -1)
+    message = data['message']
+    system_prompt = data.get('systemPrompt', DEFAULT_SYSTEM_PROMPT)
+    model = data.get('model', 'dolphin-mistral:latest')  # Get the selected model from the request data
 
-    response = requests.post(
-        f"{OLLAMA_API_URL}/api/chat",
-        json={"model": model, "messages": messages},
-        stream=True,
-    )
+    if thread_index == -1 or thread_index >= len(chat_threads):
+        # If no threads exist or index is out of range, start a new chat thread
+        new_thread_name = f'Chat {len(chat_threads) + 1}'
+        new_thread = {'name': new_thread_name, 'messages': [message], 'systemPrompt': system_prompt}
+        chat_threads.append(new_thread)
+        thread_index = len(chat_threads) - 1
+    else:
+        # Add message to the existing chat thread
+        chat_threads[thread_index]['messages'].append(message)
+        chat_threads[thread_index]['systemPrompt'] = system_prompt
 
-    def generate_response():
-        for chunk in response.iter_content(chunk_size=None):
-            yield chunk
+    # Try to generate assistant's response using streaming
+    try:
+        if not system_prompt:
+            system_prompt = DEFAULT_SYSTEM_PROMPT
 
-    return app.response_class(generate_response(), mimetype="text/event-stream")
+        messages = [{'role': 'system', 'content': system_prompt}]
+        if chat_threads[thread_index]['messages']:
+            messages.extend(chat_threads[thread_index]['messages'])
+        response = client.chat(model=model, messages=messages, stream=True)  # Use the selected model
 
-if __name__ == "__main__":
-    app.run()
+        def generate():
+            assistant_message = ''
+            for chunk in response:
+                print("Received chunk:", chunk)  # Debug print
+                assistant_message += chunk['message']['content']
+                yield f"data: {json.dumps({'message': assistant_message})}\n\n"
+            chat_threads[thread_index]['messages'].append({'role': 'assistant', 'content': assistant_message})
+
+        return app.response_class(generate(), mimetype='text/event-stream')
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)

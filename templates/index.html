@@ -1,22 +1,421 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Chatbot Interface</title>
-    <script src="https://unpkg.com/react/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
 </head>
-<body>
-    <div id="app"></div>
-    <script src="{{ url_for('static', filename='js/SettingsPopup.js') }}" type="text/babel"></script>
-    <script src="{{ url_for('static', filename='js/ChatHistory.js') }}" type="text/babel"></script>
-    <script src="{{ url_for('static', filename='js/ChatInput.js') }}" type="text/babel"></script>
-    <script src="{{ url_for('static', filename='js/ModelSelector.js') }}" type="text/babel"></script>
-    <script src="{{ url_for('static', filename='js/App.js') }}" type="text/babel"></script>
+<body class="bg-gray-900 text-white">
+    <div class="flex h-screen">
+        <!-- Sidebar for chat threads and history -->
+        <div class="w-64 bg-gray-800 p-6 overflow-y-auto">
+            <div class="flex items-center space-x-4 p-2 mb-5">
+                <!-- <img alt="Profile image placeholder" class="h-12 w-12 rounded-full" height="48" src="https://oaidalleapiprodscus.blob.core.windows.net/private/org-ImUMrP7Sgls299JvFSGt49dv/user-ulwv7wyshW6eyIOcZNwSi4On/img-e6OIyGOfuucT0G4jv83Fhz9J.png?st=2024-04-15T07%3A13%3A45Z&amp;se=2024-04-15T09%3A13%3A45Z&amp;sp=r&amp;sv=2021-08-06&amp;sr=b&amp;rscd=inline&amp;rsct=image/png&amp;skoid=6aaadede-4fb3-4698-a8f6-684d7786b067&amp;sktid=a48cca56-e6da-484e-a814-9c849652bcb3&amp;skt=2024-04-15T07%3A53%3A42Z&amp;ske=2024-04-16T07%3A53%3A42Z&amp;sks=b&amp;skv=2021-08-06&amp;sig=DbzLyNwgKcdlFMrJUx0hG9dVF8k3r89xduXjsekfgxQ%3D" width="48"/> -->
+                <div>
+                    <h4 class="font-semibold text-lg text-white">Wombat</h4>
+                    <!-- <p class="text-gray-400 text-sm">Ollama 1.0</p> -->
+                </div>
+            </div>
+            <button id="new-thread-button" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded mb-4">New Thread</button>
+            <ul id="chat-threads" class="space-y-2 text-sm">
+                <!-- Chat threads will be dynamically added here -->
+            </ul>
+        </div>
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <!-- Chat header -->
+            <!-- Chat header -->
+            <div class="p-6 flex justify-between items-center">
+                <div class="relative inline-block text-left">
+                    <div>
+                        <button type="button" id="model-dropdown-button" class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500" aria-expanded="true" aria-haspopup="true">
+                            Select Model
+                            <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M10 12a1 1 0 0 1-.707-.293l-4-4a1 1 0 1 1 1.414-1.414L10 9.586l3.293-3.293a1 1 0 1 1 1.414 1.414l-4 4A1 1 0 0 1 10 12z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="model-dropdown-menu" class="hidden origin-top-right absolute right-0 mt-2 w-auto min-w-max rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="model-dropdown-button">
+                        <div class="py-1" role="none">
+                            <!-- Model options will be dynamically populated here -->
+                        </div>
+                    </div>
+                </div>
+                <button id="system-prompt-button" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded">Set System Prompt</button>
+            </div>
+            <!-- Chat messages -->
+            <div id="chat-messages" class="flex-1 p-6 overflow-y-auto">
+                <!-- Messages will be dynamically added here -->
+            </div>
+            <!-- Message input box -->
+            <div class="mb-6 mx-6 flex">
+                <input id="message-input" class="flex-1 bg-gray-800 rounded-full py-2 px-4 text-white focus:outline-none" placeholder="Message Ollama..." type="text"/>
+                <button id="send-button" class="ml-4 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-full">
+                    <i class="fa fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Prompt Modal -->
+    <div id="system-prompt-modal" class="fixed z-10 inset-0 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+            <div class="bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Set System Prompt</h3>
+                    <div class="mt-2">
+                        <textarea id="system-prompt-input" rows="3" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 mt-1 block w-full sm:text-sm border border-gray-300 rounded-md text-black" placeholder="Enter the system prompt"></textarea>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="submit-system-prompt" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Submit
+                    </button>
+                    <button id="cancel-system-prompt" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatThreadsContainer = document.getElementById('chat-threads');
+        const chatMessagesContainer = document.getElementById('chat-messages');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const newThreadButton = document.getElementById('new-thread-button');
+        const systemPromptButton = document.getElementById('system-prompt-button');
+        const systemPromptModal = document.getElementById('system-prompt-modal');
+        const systemPromptInput = document.getElementById('system-prompt-input');
+        const submitSystemPromptButton = document.getElementById('submit-system-prompt');
+        const cancelSystemPromptButton = document.getElementById('cancel-system-prompt');
+        const modelSelect = document.getElementById('model-select');
+        const modelDropdownButton = document.getElementById('model-dropdown-button');
+        const modelDropdownMenu = document.getElementById('model-dropdown-menu');
+
+        let chatThreads = [];
+        let currentThreadIndex = -1;
+
+        function toggleModelDropdown() {
+            modelDropdownMenu.classList.toggle('hidden');
+        }
+
+        // Function to populate the model dropdown menu
+        function populateModelDropdown(models) {
+            const modelOptions = models.map(model => `
+                <a href="#" class="dropdown-item" data-model="${model.name}">${model.name}</a>
+            `).join('');
+            modelDropdownMenu.querySelector('.py-1').innerHTML = modelOptions;
+
+            // Add click event listeners to the model options
+            const modelOptionElements = modelDropdownMenu.querySelectorAll('.dropdown-item');
+            modelOptionElements.forEach(optionElement => {
+                optionElement.addEventListener('click', () => {
+                    const selectedModel = optionElement.getAttribute('data-model');
+                    modelDropdownButton.textContent = selectedModel;
+                    toggleModelDropdown();
+                });
+            });
+        }
+
+
+
+        // Function to fetch chat threads from the server
+        async function fetchChatThreads() {
+            try {
+                const response = await fetch('/api/chat-threads');
+                chatThreads = await response.json();
+                renderChatThreads();
+            } catch (error) {
+                console.error('Error fetching chat threads:', error);
+            }
+        }
+
+        async function fetchModels() {
+            try {
+                const response = await fetch('/api/models');
+                const data = await response.json();
+                const models = data.models;
+                populateModelDropdown(models);
+            } catch (error) {
+                console.error('Error fetching models:', error);
+            }
+        }
+
+        function populateModelDropdown(models) {
+            const modelDropdownMenu = document.getElementById('model-dropdown-menu');
+            modelDropdownMenu.innerHTML = '';
+
+            models.forEach(model => {
+                const modelOption = document.createElement('a');
+                modelOption.href = '#';
+                modelOption.classList.add('dropdown-item');
+                modelOption.textContent = model.name;
+                modelOption.addEventListener('click', () => {
+                    document.getElementById('model-dropdown-button').textContent = model.name;
+                    toggleModelDropdown();
+                });
+                modelDropdownMenu.appendChild(modelOption);
+            });
+        }
+
+
+        // Function to render chat threads
+        function renderChatThreads() {
+            chatThreadsContainer.innerHTML = '';
+
+            chatThreads.forEach((thread, index) => {
+                const chatThreadElement = document.createElement('li');
+                chatThreadElement.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <a class="flex items-center space-x-3 text-white p-2 rounded-md font-medium hover:bg-gray-700" href="#">
+                            <span class="text-gray-400">
+                                <i class="fas fa-comment-alt"></i>
+                            </span>
+                            <span>${thread.name}</span>
+                        </a>
+                        <div class="thread-actions">
+                            <button class="rename-thread" data-index="${index}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-thread" data-index="${index}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+
+                    </div>
+                `;
+                chatThreadElement.querySelector('a').addEventListener('click', () => {
+                    currentThreadIndex = index;
+                    renderChatMessages();
+                });
+                chatThreadsContainer.appendChild(chatThreadElement);
+            });
+
+            const renameButtons = document.querySelectorAll('.rename-thread');
+            renameButtons.forEach(button => {
+                button.addEventListener('click', renameThread);
+            });
+
+            const deleteButtons = document.querySelectorAll('.delete-thread');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', deleteThread);
+            });
+
+        }
+
+        function renameThread(event) {
+            const threadIndex = event.target.closest('.rename-thread').dataset.index;
+            const newName = prompt('Enter a new name for the thread:', chatThreads[threadIndex].name);
+            if (newName !== null && newName.trim() !== '') {
+                chatThreads[threadIndex].name = newName.trim();
+                document.getElementById(`thread-name-${threadIndex}`).textContent = newName.trim();
+            }
+        }
+
+
+        function deleteThread(event) {
+            const threadIndex = event.target.dataset.index;
+            if (confirm('Are you sure you want to delete this thread?')) {
+                chatThreads.splice(threadIndex, 1);
+                if (currentThreadIndex === threadIndex) {
+                    currentThreadIndex = -1;
+                }
+                renderChatThreads();
+                renderChatMessages();
+            }
+        }
+
+
+        // Function to render chat messages
+        function renderChatMessages() {
+            chatMessagesContainer.innerHTML = '';
+
+            if (currentThreadIndex !== -1) {
+                const currentThread = chatThreads[currentThreadIndex];
+
+                currentThread.messages.forEach(message => {
+                    const messageElement = document.createElement('div');
+                    messageElement.classList.add('mb-4');
+
+                    if (message.role === 'user') {
+                        messageElement.classList.add('text-right');
+                        messageElement.innerHTML = `
+                            <span class="inline-block bg-blue-600 rounded-full py-2 px-4 text-white">${message.content}</span>
+                        `;
+                    } else {
+                        messageElement.classList.add('text-left');
+                        messageElement.innerHTML = `
+                            <span class="inline-block bg-gray-800 rounded-full py-2 px-4 text-white">${message.content}</span>
+                        `;
+                    }
+
+                    chatMessagesContainer.appendChild(messageElement);
+                });
+            }
+        }
+
+        // Function to send a message
+        async function sendMessage() {
+            const messageContent = messageInput.value.trim();
+            const selectedModel = modelDropdownButton.textContent.trim();
+
+            if (messageContent !== '') {
+                const message = {
+                    role: 'user',
+                    content: messageContent
+                };
+
+                if (currentThreadIndex === -1) {
+                    // Create a new chat thread
+                    const newThread = {
+                        name: `Chat ${chatThreads.length + 1}`,
+                        messages: [message],
+                        systemPrompt: ''
+                    };
+                    chatThreads.push(newThread);
+                    currentThreadIndex = chatThreads.length - 1;
+                    renderChatThreads();
+                } else {
+                    // Add message to the current chat thread
+                    chatThreads[currentThreadIndex].messages.push(message);
+                }
+
+                renderChatMessages();
+                messageInput.value = '';
+
+                try {
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            threadIndex: currentThreadIndex,
+                            message: message,
+                            systemPrompt: chatThreads[currentThreadIndex].systemPrompt,
+                            model:selectedModel
+                            
+                        })
+                    });
+
+                    console.log("Response:", response);  // Debug print
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder('utf-8');
+                    let assistantMessageBox = document.createElement('div');
+                    assistantMessageBox.classList.add('mb-4', 'text-left');
+                    chatMessagesContainer.appendChild(assistantMessageBox);
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value);
+                        console.log("Received chunk:", chunk);  // Debug print
+
+                        const lines = chunk.split('\n');
+
+                        for (const line of lines) {
+                            if (line.startsWith('data:')) {
+                                const data = JSON.parse(line.substring(5));
+                                console.log("Parsed data:", data);  // Debug print
+                                const assistantMessage = data.message;
+                                
+                                // Update the dialogue box with the received message
+                                assistantMessageBox.innerHTML = `<span class="inline-block bg-gray-800 rounded-full py-2 px-4 text-white">${assistantMessage}</span>`;
+                            }
+                        }
+                    }
+
+                    // Add the final assistant message to the chat thread
+                    chatThreads[currentThreadIndex].messages.push({ role: 'assistant', content: assistantMessageBox.textContent });
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                }
+            }
+        }
+
+        // Function to create a new thread
+        function createNewThread() {
+            const newThread = {
+                name: `Chat ${chatThreads.length + 1}`,
+                messages: [],
+                systemPrompt: ''
+            };
+            chatThreads.push(newThread);
+            currentThreadIndex = chatThreads.length - 1;
+            renderChatThreads();
+            renderChatMessages();
+        }
+
+        // Function to open the system prompt modal
+        function openSystemPromptModal() {
+            systemPromptModal.classList.remove('hidden');
+            systemPromptInput.value = chatThreads[currentThreadIndex].systemPrompt || '';
+        }
+
+        // Function to close the system prompt modal
+        function closeSystemPromptModal() {
+            systemPromptModal.classList.add('hidden');
+        }
+
+        // Function to handle the submit system prompt button click
+        function handleSubmitSystemPrompt() {
+            const systemPrompt = systemPromptInput.value.trim();
+            chatThreads[currentThreadIndex].systemPrompt = systemPrompt;
+            closeSystemPromptModal();
+            renderChatMessages();
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', event => {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        newThreadButton.addEventListener('click', createNewThread);
+        systemPromptButton.addEventListener('click', openSystemPromptModal);
+        submitSystemPromptButton.addEventListener('click', handleSubmitSystemPrompt);
+        cancelSystemPromptButton.addEventListener('click', closeSystemPromptModal);
+        modelDropdownButton.addEventListener('click', toggleModelDropdown);
+
+
+        // Initialize the app
+        fetchChatThreads();
+        fetchModels();
+        fetchChatThreads();
+    </script>
 </body>
+<style>
+    .dropdown-item {
+        display: block;
+        width: 100%;
+        padding: 0.5rem 1rem;
+        clear: both;
+        font-weight: 400;
+        color: #212529;
+        text-align: inherit;
+        white-space: nowrap;
+        background-color: transparent;
+        border: 0;
+    }
+    
+    .dropdown-item:hover, .dropdown-item:focus {
+        color: #16181b;
+        text-decoration: none;
+        background-color: #f8f9fa;
+    }
+</style>
 </html>
